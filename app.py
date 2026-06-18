@@ -1,38 +1,46 @@
 import streamlit as st
+import pandas as pd
+import os
 
-# Set page configuration
-st.set_page_config(page_title="Citizenship Checker", page_icon="🛂")
+# Function to save data to a CSV file
+def save_data(data):
+    df = pd.DataFrame([data])
+    # If the file doesn't exist, create it with headers
+    if not os.path.exists('responses.csv'):
+        df.to_csv('responses.csv', index=False)
+    else:
+        # Otherwise, append the data without adding headers again
+        df.to_csv('responses.csv', mode='a', header=False, index=False)
 
-def main():
-    st.title("🛂 CITIZENSHIP CHECKER")
-    st.markdown("---")
+st.title("🛂 CITIZENSHIP CHECKER")
 
-    # Age input using a number input widget
-    age = st.number_input("Enter your age:", min_value=0, max_value=120, step=1)
+age = st.number_input("Enter your age:", min_value=0, max_value=120, step=1)
 
-    # Only show the form if the button is clicked
-    if st.button("Check Eligibility"):
-        if age >= 18:
-            st.success("Hello dear, you can enter!")
+if st.button("Check Eligibility"):
+    if age >= 18:
+        with st.form("citizenship_form", clear_on_submit=True):
+            name = st.text_input("Name:")
+            school = st.text_input("School:")
+            reg = st.text_input("Reg Number:")
+            phone = st.text_input("Phone Number:")
+            friend = st.text_input("Best friend's name:")
             
-            # Use a form to collect information
-            with st.form("citizenship_form"):
-                name = st.text_input("Name:")
-                school = st.text_input("School:")
-                reg = st.text_input("Reg Number:")
-                phone = st.text_input("Phone Number:")
-                friend = st.text_input("Best friend's name:")
-                
-                submitted = st.form_submit_button("Submit Details")
-                
-                if submitted:
-                    st.divider()
-                    st.write("### Registration Details")
-                    st.info(f"**Name:** {name}\n\n**School:** {school}\n\n**Reg:** {reg}\n\n**Phone:** {phone}\n\n**Friend:** {friend}")
-        else:
-            st.warning("Na only here adulthood help.")
-            st.write("BETTER ENJOY YOUR CHILDHOOD NOW, because hmmm...")
-            st.error("Go and get your PVC, e get why, so that you can become an adult.")
+            submitted = st.form_submit_button("Submit Details")
+            
+            if submitted:
+                new_data = {"Name": name, "School": school, "Reg": reg, "Phone": phone, "Friend": friend}
+                save_data(new_data)
+                st.success("Details saved successfully!")
+    else:
+        st.warning("You must be 18+ to register.")
 
-if __name__ == "__main__":
-    main()
+# Add a section to download the saved data
+st.divider()
+if os.path.exists('responses.csv'):
+    with open("responses.csv", "rb") as file:
+        st.download_button(
+            label="Download All Responses (CSV)",
+            data=file,
+            file_name="responses.csv",
+            mime="text/csv"
+        )
