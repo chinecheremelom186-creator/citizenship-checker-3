@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 
-st.set_page_config(page_title="Pro Exam", layout="wide")
+st.set_page_config(page_title="BIO 102 Pro Exam", layout="wide")
 
 # --- INITIALIZATION ---
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
@@ -25,25 +25,29 @@ if not st.session_state.logged_in:
     st.stop()
 
 # --- LOAD DATA ---
-df = pd.read_csv('questions.csv')
+try:
+    df = pd.read_csv('questions.csv')
+except:
+    st.error("questions.csv file not found!")
+    st.stop()
 
 # --- TIMER ---
 remaining = 300 - (time.time() - st.session_state.start_time)
-if remaining <= 0: st.session_state.submitted = True
+if remaining <= 0: 
+    st.session_state.submitted = True
 
 # --- EXAM FLOW ---
 if not st.session_state.submitted:
     st.metric("Time Remaining", f"{int(remaining//60)}:{int(remaining%60):02d}")
-    
-    # Progress Bar
     st.progress((st.session_state.q_index + 1) / len(df))
     
     row = df.iloc[st.session_state.q_index]
     st.subheader(f"Q{st.session_state.q_index + 1}: {row['question']}")
-    ans = st.radio("Select:", [row['optionA'], row['optionB'], row['optionC']], key="ans_select", index=None)
     
-    col1, col2 = st.columns([1, 5])
-    if col1.button("Next/Submit"):
+    # Store answer in session state
+    ans = st.radio("Select:", [row['optionA'], row['optionB'], row['optionC']], key="current_q", index=None)
+    
+    if st.button("Next/Submit"):
         st.session_state.answers[st.session_state.q_index] = ans
         if st.session_state.q_index < len(df) - 1:
             st.session_state.q_index += 1
@@ -54,30 +58,22 @@ if not st.session_state.submitted:
 
 # --- RESULTS & RANKING ---
 if st.session_state.submitted:
-    # --- RANKING LOGIC ---
-if st.session_state.submitted:
-    # 1. Save current user result
-    result_data = pd.DataFrame([[st.session_state.name, score, percent]], 
-                               columns=['name', 'score', 'percent'])
-    result_data.to_csv('results.csv', mode='a', header=False, index=False)
-    
-    # 2. Calculate Position
-    all_results = pd.read_csv('results.csv', names=['name', 'score', 'percent'])
-    all_results = all_results.sort_values(by='score', ascending=False)
-    
-    # Find current user's rank
-    my_rank = all_results[all_results['name'] == st.session_state.name].index[0] + 1
-    total_students = len(all_results)
-    
-    st.subheader(f"🏆 Your Position: {my_rank} out of {total_students}")
-    
+    # 1. Calculate Score
     score = sum(1 for i, row in df.iterrows() if st.session_state.answers.get(i) == row['correct'])
     percent = (score / len(df)) * 100
     
-    st.success(f"Exam Finished! Score: {score}/{len(df)} ({percent:.1f}%)")
+    # 2. Save result
+    result_data = pd.DataFrame([[st.session_state.name, score, percent]], columns=['name', 'score', 'percent'])
+    result_data.to_csv('results.csv', mode='a', header=False, index=False)
     
-    # Logic: To show position, you would compare against a 'results.csv'
-    # For now, we display the review:
+    # 3. Display Ranking
+    all_results = pd.read_csv('results.csv', names=['name', 'score', 'percent'])
+    all_results = all_results.sort_values(by='score', ascending=False)
+    my_rank = all_results[all_results['name'] == st.session_state.name].index[0] + 1
+    
+    st.success(f"Exam Finished! Score: {score}/{len(df)} ({percent:.1f}%)")
+    st.subheader(f"🏆 Your Position: {my_rank} out of {len(all_results)}")
+    
     for i, row in df.iterrows():
         with st.expander(f"Q{i+1} Review"):
             st.write(f"Explanation: {row['explanation']}")
