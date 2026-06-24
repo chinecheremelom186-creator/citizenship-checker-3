@@ -33,8 +33,7 @@ except:
 
 # --- TIMER ---
 remaining = 300 - (time.time() - st.session_state.start_time)
-if remaining <= 0: 
-    st.session_state.submitted = True
+if remaining <= 0: st.session_state.submitted = True
 
 # --- EXAM FLOW ---
 if not st.session_state.submitted:
@@ -57,21 +56,27 @@ if not st.session_state.submitted:
 
 # --- RESULTS & RANKING ---
 if st.session_state.submitted:
-    # 1. Calculate Score
     score = sum(1 for i, row in df.iterrows() if st.session_state.answers.get(i) == row['correct'])
     percent = (score / len(df)) * 100
     
-    # 2. Save result
-    result_data = pd.DataFrame([[st.session_state.name, score, percent]], columns=['name', 'score', 'percent'])
-    result_data.to_csv('results.csv', mode='a', header=False, index=False)
+    # Save to CSV safely
+    try:
+        new_row = pd.DataFrame([[st.session_state.name, score, percent]], columns=['name', 'score', 'percent'])
+        new_row.to_csv('results.csv', mode='a', header=False, index=False)
+    except:
+        pass # If writing fails, student still gets their results
     
-    # 3. Display Ranking
-    all_results = pd.read_csv('results.csv', names=['name', 'score', 'percent'])
-    all_results = all_results.sort_values(by='score', ascending=False).reset_index(drop=True)
-    my_rank = all_results[all_results['name'] == st.session_state.name].index[0] + 1
-    
+    # Calculate Rank
+    try:
+        all_results = pd.read_csv('results.csv', names=['name', 'score', 'percent'])
+        all_results = all_results.sort_values(by='score', ascending=False).reset_index(drop=True)
+        my_rank = all_results[all_results['name'] == st.session_state.name].index[0] + 1
+        total = len(all_results)
+    except:
+        my_rank, total = 1, 1
+
     st.success(f"Exam Finished! Score: {score}/{len(df)} ({percent:.1f}%)")
-    st.subheader(f"🏆 Your Position: {my_rank} out of {len(all_results)}")
+    st.subheader(f"🏆 Your Position: {my_rank} out of {total}")
     
     for i, row in df.iterrows():
         with st.expander(f"Q{i+1} Review"):
