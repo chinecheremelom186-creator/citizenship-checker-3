@@ -44,7 +44,6 @@ if not st.session_state.submitted:
     row = df.iloc[st.session_state.q_index]
     st.subheader(f"Q{st.session_state.q_index + 1}: {row['question']}")
     
-    # Store answer in session state
     ans = st.radio("Select:", [row['optionA'], row['optionB'], row['optionC']], key="current_q", index=None)
     
     if st.button("Next/Submit"):
@@ -68,7 +67,7 @@ if st.session_state.submitted:
     
     # 3. Display Ranking
     all_results = pd.read_csv('results.csv', names=['name', 'score', 'percent'])
-    all_results = all_results.sort_values(by='score', ascending=False)
+    all_results = all_results.sort_values(by='score', ascending=False).reset_index(drop=True)
     my_rank = all_results[all_results['name'] == st.session_state.name].index[0] + 1
     
     st.success(f"Exam Finished! Score: {score}/{len(df)} ({percent:.1f}%)")
