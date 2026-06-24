@@ -54,6 +54,23 @@ if not st.session_state.submitted:
 
 # --- RESULTS & RANKING ---
 if st.session_state.submitted:
+    # --- RANKING LOGIC ---
+if st.session_state.submitted:
+    # 1. Save current user result
+    result_data = pd.DataFrame([[st.session_state.name, score, percent]], 
+                               columns=['name', 'score', 'percent'])
+    result_data.to_csv('results.csv', mode='a', header=False, index=False)
+    
+    # 2. Calculate Position
+    all_results = pd.read_csv('results.csv', names=['name', 'score', 'percent'])
+    all_results = all_results.sort_values(by='score', ascending=False)
+    
+    # Find current user's rank
+    my_rank = all_results[all_results['name'] == st.session_state.name].index[0] + 1
+    total_students = len(all_results)
+    
+    st.subheader(f"🏆 Your Position: {my_rank} out of {total_students}")
+    
     score = sum(1 for i, row in df.iterrows() if st.session_state.answers.get(i) == row['correct'])
     percent = (score / len(df)) * 100
     
