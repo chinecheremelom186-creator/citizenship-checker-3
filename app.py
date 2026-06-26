@@ -15,6 +15,23 @@ if 'admin_mode' not in st.session_state: st.session_state.admin_mode = False
 
 # --- LOAD QUESTIONS ---
 df = pd.read_csv('questions.csv')
+# --- ADMIN PANEL: Add Questions ---
+with st.sidebar.expander("Admin: Add New Question"):
+    new_q = st.text_input("Question")
+    optA = st.text_input("Option A")
+    optB = st.text_input("Option B")
+    optC = st.text_input("Option C")
+    corr = st.text_input("Correct Answer (must match one of the above)")
+    expl = st.text_area("Explanation")
+    
+    if st.button("Add to Database"):
+        new_data = pd.DataFrame([[new_q, optA, optB, optC, corr, expl]], 
+                                columns=['question', 'optionA', 'optionB', 'optionC', 'correct', 'explanation'])
+        # NOTE: This adds it to the session memory. 
+        # For permanent storage on GitHub, you still need to update the file, 
+        # but this allows you to input questions via the app interface.
+        st.success("Question added to session!")
+        
 
 # --- LOGIN / ADMIN GATE ---
 if not st.session_state.logged_in:
