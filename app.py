@@ -13,31 +13,13 @@ if 'submitted' not in st.session_state: st.session_state.submitted = False
 if 'confirm_submit' not in st.session_state: st.session_state.confirm_submit = False
 if 'admin_mode' not in st.session_state: st.session_state.admin_mode = False
 
-# --- LOAD QUESTIONS ---
+# --- LOAD DATA ---
 df = pd.read_csv('questions.csv')
-# --- ADMIN PANEL: Add Questions ---
-with st.sidebar.expander("Admin: Add New Question"):
-    new_q = st.text_input("Question")
-    optA = st.text_input("Option A")
-    optB = st.text_input("Option B")
-    optC = st.text_input("Option C")
-    corr = st.text_input("Correct Answer (must match one of the above)")
-    expl = st.text_area("Explanation")
-    
-    if st.button("Add to Database"):
-        new_data = pd.DataFrame([[new_q, optA, optB, optC, corr, expl]], 
-                                columns=['question', 'optionA', 'optionB', 'optionC', 'correct', 'explanation'])
-        # NOTE: This adds it to the session memory. 
-        # For permanent storage on GitHub, you still need to update the file, 
-        # but this allows you to input questions via the app interface.
-        st.success("Question added to session!")
-        
 
 # --- LOGIN / ADMIN GATE ---
 if not st.session_state.logged_in:
     st.title("BIO 102 Pro Exam")
     name = st.text_input("Enter your Full Name to Start:")
-    # Admin access: type 'admin123' in the name field to open the tool
     if name == "admin123":
         st.session_state.admin_mode = True
         st.session_state.logged_in = True
@@ -60,15 +42,14 @@ if st.session_state.admin_mode:
     optC = st.text_input("Option C")
     corr = st.text_input("Correct Answer (Exactly as written above)")
     expl = st.text_area("Explanation")
-    if st.button("Save New Question"):
-        st.write("Copy this line to your CSV file:")
+    if st.button("Generate CSV Line"):
         st.code(f'"{new_q}","{optA}","{optB}","{optC}","{corr}","{expl}"')
     st.stop()
 
 # --- READY GATE ---
 if not st.session_state.ready_to_start:
     st.subheader(f"Hello, {st.session_state.name}!")
-    st.write("5-minute timer starts once you click 'Start Exam'.")
+    st.write("You are about to begin the BIO 102 Exam. 5-minute timer starts when you click Start.")
     col1, col2 = st.columns(2)
     if col1.button("Start Exam"):
         st.session_state.ready_to_start = True
@@ -83,13 +64,16 @@ if not st.session_state.ready_to_start:
 if not st.session_state.submitted:
     elapsed = time.time() - st.session_state.start_time
     remaining = 300 - elapsed 
+    
     if remaining <= 0:
         st.session_state.submitted = True
         st.rerun()
     
+    # Display Ticking Timer
     mins, secs = divmod(int(remaining), 60)
     st.metric("Time Remaining", f"{mins:02d}:{secs:02d}")
     
+    # Question
     row = df.iloc[st.session_state.q_index]
     st.subheader(f"Q{st.session_state.q_index + 1}: {row['question']}")
     ans = st.radio("Select:", [row['optionA'], row['optionB'], row['optionC']], key=f"q_{st.session_state.q_index}")
@@ -105,6 +89,7 @@ if not st.session_state.submitted:
         st.session_state.confirm_submit = True
     
     if st.session_state.confirm_submit:
+        st.warning("⚠️ Are you sure?")
         if st.button("YES, SUBMIT"):
             st.session_state.submitted = True
             st.rerun()
@@ -115,4 +100,7 @@ if not st.session_state.submitted:
 # --- RESULTS ---
 if st.session_state.submitted:
     score = sum(1 for i, row in df.iterrows() if st.session_state.answers.get(i) == row['correct'])
-    st.success(f"Score: {score}/{len(df)}")
+    st.success(f"Exam Finished! Your Score: {score}/{len(df)}")
+    for i, row in df.iterrows():
+        with st.expander(f"Q{i+1} Review"):
+            st.write(f"Explanation: {row['explanation']}")
